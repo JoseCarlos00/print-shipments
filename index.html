@@ -27,16 +27,23 @@
         <h3 class="text-center my-4">Cargar Archivo Excel</h1>
         <input type="file" id="input_file_excel" class="form-control mb-3" accept=".xlsx, .xls, .csv">
         
-        <button id="loadButton" class="btn btn-primary">Cargar y Filtrar</button>
+        <button hidden id="loadButton" class="btn btn-primary">Cargar y Filtrar</button> 
+        
+        <div class="text-center">
+          <button id="processSelectedButton" class="btn btn-success" disabled style="height: 62px; min-width: 114px;">
+            Imprimir
+            <span id="counterSelected" class="badge text-bg-primary"></span>
+          </button>
+        </div>
       </div>
     </div>
 
     <div class="row mt-5">
       <div class="col-md-12">
-        <table class="table table-striped table-hover">
+        <table class="table table-striped table-hover table-info">
           <thead>
             <tr>
-              <th scope="col" style="display: flex; gap: 4px;">All <input type="checkbox" id="checkAll" class="form-check-input"></th>
+              <th scope="col"><label><input type="checkbox" id="checkAll" class="form-check-input"> Todos</label></th>
               <th scope="col">#</th>
               <th scope="col">PEDIDO</th>
               <th scope="col">ID DEL PEDIDO</th>
@@ -49,18 +56,31 @@
           </thead>
           <tbody id="excelTableBody">
             <tr>
-              <th scope="row">1</th>
+              <th scope="row"><input type="checkbox" name="" id=""></th>
               <th scope="row">1</th>
               <td>Dato 1</td>
               <td>Dato 2</td>
               <td>Dato 3</td>
               <td>Dato 4</td>
               <td>Dato 5</td>
-              <td><a href="https://example.com" class="btn btn-primary" target="_blank">Imprimir</a></td>
+              <td>Dato 6</td>
+              <td><a href="https://example.com" class="d-inline-flex focus-ring py-1 px-2 text-decoration-none border rounded-2" style="--bs-focus-ring-x: 10px; --bs-focus-ring-y: 10px; --bs-focus-ring-blur: 4px" target="_blank">Imprimir</a></td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <style>
+        #excelTableBody tr.disabled td a {
+          pointer-events: none;
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
+
+        input[type=checkbox] {
+          cursor: pointer;
+        }
+      </style>
 
       <script type="module" src="./js/main.js"></script>
 </body>

@@ -1,4 +1,4 @@
-import { mockData } from '../mock/mock.js'; // Import mock data if needed
+// import { mockData } from '../mock/mock.js'; // Import mock data if needed
 import { ignoredShipments, columnsFilters, tiendasCodeId } from './consts.js'; // Import constants
 import { excelSerialDateToJSDate, formatDateTime } from './utils.js'; // Import utility functions
 
@@ -10,11 +10,13 @@ class ProcessingTable {
 		this.checkAll = document.getElementById('checkAll');
 		this.processSelectedButton = document.getElementById('processSelectedButton');
 
+		this.counterSelected = document.getElementById('counterSelected');
+
 		if (!this.inputFile || !this.tableBody || !this.checkAll || !this.processSelectedButton) {
 			throw new Error('Required elements not found in the DOM');
 		}
 
-		this.jsonData = mockData; // Initialize with mock data for testing
+		// this.jsonData = mockData; // Initialize with mock data for testing
 		this.init();
 	}
 
@@ -62,6 +64,8 @@ class ProcessingTable {
 					// 4. Llamar a la función para deshabilitar el ancla individual
 					// Pasa el checkbox para que tu función pueda actuar sobre él
 					this.disabledIndividualAnchor(checkbox);
+
+					this.updateSelectedCounter();
 				}
 			}
 		});
@@ -239,12 +243,27 @@ class ProcessingTable {
 		});
 	}
 
+	updateSelectedCounter() {
+		// Cuenta cuántos checkboxes están actualmente marcados dentro de tableBody
+		const selectedCount = this.tableBody.querySelectorAll('input[type="checkbox"]:checked').length;
+
+
+		// Asigna el número al contenido de tu elemento contador
+		if (this.counterSelected) {
+			this.counterSelected.textContent = selectedCount === 0 ? '' : selectedCount;
+		}
+	}
+
 	toggleAllCheckboxes(e) {
 		const checkboxes = this.tableBody.querySelectorAll('input[type="checkbox"]');
+
 		checkboxes.forEach((checkbox) => {
 			checkbox.checked = this.checkAll.checked;
 			this.disabledIndividualAnchor(checkbox);
+
 		});
+
+		this.updateSelectedCounter();
 
 		this.processSelectedButton.disabled = !this.checkAll.checked;
 	}
@@ -265,6 +284,7 @@ class ProcessingTable {
 			return;
 		}
 
+
 		const selectedData = Array.from(selectedCheckboxes).map((checkbox) => ({
 			tiendaId: checkbox.dataset.tiendaId,
 			tiendaCode: checkbox.dataset.tiendaCode,
@@ -273,7 +293,6 @@ class ProcessingTable {
 
 		console.log('Selected data:', selectedData);
 		this.sendExternalPrintShipments(selectedData);
-
 
 		// Aquí puedes agregar la lógica para procesar los datos seleccionados
 		// alert(`Procesando ${selectedData.length} pedidos seleccionados.`);
@@ -285,19 +304,17 @@ class ProcessingTable {
 		const baseURL = 'http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?';
 
 		// PedidoNum=78785,51420,62401
-		const PedidoNum = []
+		const PedidoNum = [];
 		// &TiendaId=7,19,9
-		const TiendaId = []
-
+		const TiendaId = [];
 
 		selectedData.forEach(({ tiendaId, pedido }) => {
-			PedidoNum.push(pedido)
-			TiendaId.push(tiendaId)
-		})
+			PedidoNum.push(pedido);
+			TiendaId.push(tiendaId);
+		});
 
 		const newURL = `${baseURL}PedidoNum=${PedidoNum.join(',')}&TiendaId=${TiendaId.join(',')}`;
 		window.open(newURL, '_blank');
-
 	}
 }
 
