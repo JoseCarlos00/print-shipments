@@ -1,4 +1,6 @@
 import { mockData } from '../mock/mock.js'; // Import mock data if needed
+import { ignoredShipments, columnsFilters, tiendasCodeId } from './consts.js'; // Import constants
+import { excelSerialDateToJSDate, formatDateTime } from './utils.js'; // Import utility functions
 
 class ProcessingTable {
 	constructor() {
@@ -51,7 +53,7 @@ class ProcessingTable {
 			return;
 		}
 		/* convert to json */
-		const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+		const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { cellDates: true });
 		if (!jsonData) {
 			console.error('Failed to convert to JSON');
 			return;
@@ -74,48 +76,53 @@ class ProcessingTable {
 			return;
 		}
 
-		console.log('Processing JSON data:', json);
-
-		const ignoredShipments = [
-			'444',
-			'R444',
-			'357',
-			'R357',
-			'417',
-			'R417',
-			'418',
-			'R418',
-			'1171',
-			'R1171',
-			'356',
-			'R356',
-		];
-		const columnsFilters = ['PEDIDO','ID DEL PEDIDO', 'SHIP_TO', 'ANTIGUEDAD','OLA'];
+		// console.log('Processing JSON data:', json);
+	
 
 		const uniqueOrdersMap = json.reduce(
 			(acc, row) => {
 				const orderId = row['ID DEL PEDIDO'];
-				const firstPart = orderId?.trim()?.split('-')?.[0];
+				const customerCode = orderId?.trim()?.split('-')?.[0];
 				const pedidoNumber = orderId?.trim()?.split('-')?.[3];
 
 				// Si el ID ya ha sido procesado o la primera parte es ignorada, salta
-				if (acc.seenIds.has(orderId) || ignoredShipments.includes(firstPart)) {
+				if (acc.seenIds.has(orderId) || ignoredShipments.includes(customerCode)) {
 					return acc;
 				}
 
-				// --- MODIFICACIÓN CLAVE AQUÍ ---
-				// Crea un nuevo objeto de fila que solo contendrá las columnas filtradas
 				const filteredRow = {};
+
 				columnsFilters.forEach((column) => {
 					// Asigna el valor de la columna de 'row' a 'filteredRow'
 					// Asegúrate de manejar casos donde la columna no exista en 'row'
 					if (row.hasOwnProperty(column)) {
-						filteredRow[column] = row[column];
+						if (column === 'ANTIGUEDAD' && typeof row[column] === 'number') {
+							const jsDate = excelSerialDateToJSDate(row[column]);
+							filteredRow[column] = formatDateTime(jsDate);
+						} else {
+							filteredRow[column] = row[column];
+						}
 					}
 
 					if (column === 'PEDIDO') {
 						// Añade la columna 'PEDIDO'
 						filteredRow['PEDIDO'] = pedidoNumber;
+					}
+
+					const tienda = tiendasCodeId[customerCode];
+
+					if (column == 'TIENDA') {
+						
+						if (tienda) {
+							filteredRow['TIENDA'] = tienda.Customer;
+						} else {
+							filteredRow['TIENDA'] = '';
+						}
+					}
+
+					if (tienda) {
+						filteredRow['CODE'] = tienda.Code;
+						filteredRow['ID'] = tienda.Id;
 					}
 				});
 
@@ -147,24 +154,49 @@ class ProcessingTable {
 			this.tableBody.innerHTML = ''; // Clear existing table body
 		}
 
+		// Filtered columns in not includes 'ID' and 'CODE'
+		const filteredColumns = jsonData.map((row) => {
+			return Object.fromEntries(
+				Object.entries(row).filter(([key]) => !['ID', 'CODE'].includes(key))
+			);
+		}).filter(row => Object.keys(row).length > 0); // Filter out empty rows		
+
+		console.log('Filtered columns:', filteredColumns);
+		
+		
+
 		/* populate table */
-		jsonData.forEach((row, index) => {
+		filteredColumns.forEach((row, index) => {
 			const tr = document.createElement('tr');
-			const th = document.createElement('th');
-			th.scope = 'row';
-			th.textContent = index + 1;
-			tr.appendChild(th);
+
+			const tdCheckbox = document.createElement('td');
+			const checkbox = document.createElement('input');
+			checkbox.type = 'checkbox';
+			checkbox.className = 'form-check-input';
+			checkbox.id = `checkbox-${index}`;
+			tdCheckbox.appendChild(checkbox);
+			tr.appendChild(tdCheckbox);
+
+			const thIndex = document.createElement('th');
+			thIndex.scope = 'row';
+			thIndex.textContent = index + 1;
+			tr.appendChild(thIndex);
+			
+
 			Object.values(row).forEach((value) => {
 				const td = document.createElement('td');
 				td.textContent = value;
 				tr.appendChild(td);
 			});
+
 			const tdLink = document.createElement('td');
 			const link = document.createElement('a');
+
 			link.href = row['Enlace'] || '#';
 			link.className = 'btn btn-primary';
 			link.target = '_blank';
-			link.textContent = 'Ver Detalles';
+			link.textContent = 'Imprimir';
+
 			tdLink.appendChild(link);
 			tr.appendChild(tdLink);
 
@@ -182,3 +214,4 @@ document.addEventListener('DOMContentLoaded', () => {
 		alert('An error occurred while initializing the application. Please check the console for details.');
 	}
 });
+
