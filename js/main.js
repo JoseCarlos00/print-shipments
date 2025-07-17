@@ -1,8 +1,8 @@
-import { mockData } from "../mock/mock.js"; // Import mock data if needed
+import { mockData } from '../mock/mock.js'; // Import mock data if needed
 
 class ProcessingTable {
 	constructor() {
-    this.inputFile = document.getElementById('input_file_excel');
+		this.inputFile = document.getElementById('input_file_excel');
 		this.tableBody = document.getElementById('excelTableBody');
 
 		if (!this.inputFile || !this.tableBody) {
@@ -11,22 +11,22 @@ class ProcessingTable {
 
 		this.jsonData = mockData; // Initialize with mock data for testing
 		this.init();
-  }
+	}
 
-  init() {
-    try {
-      this.setupEventListeners();
+	init() {
+		try {
+			this.setupEventListeners();
 			this.processingJson(this.jsonData);
 
-      console.log('ProcessingTable initialized successfully');
-    } catch (error) {
-      console.error('Error initializing ProcessingTable:', error);
-    }
-  }
+			console.log('ProcessingTable initialized successfully');
+		} catch (error) {
+			console.error('Error initializing ProcessingTable:', error);
+		}
+	}
 
-  setupEventListeners() {
-    this.inputFile.addEventListener('change', (e) => this.handleFileAsync(e));
-  }
+	setupEventListeners() {
+		this.inputFile.addEventListener('change', (e) => this.handleFileAsync(e));
+	}
 
 	// XLSX is a global from the standalone script
 
@@ -76,22 +76,54 @@ class ProcessingTable {
 
 		console.log('Processing JSON data:', json);
 
-		const ignoredShipments = ['444','R444','357','R357','417','R417','418','R418','1171','R1171','356','R356'];
+		const ignoredShipments = [
+			'444',
+			'R444',
+			'357',
+			'R357',
+			'417',
+			'R417',
+			'418',
+			'R418',
+			'1171',
+			'R1171',
+			'356',
+			'R356',
+		];
+		const columnsFilters = ['PEDIDO','ID DEL PEDIDO', 'SHIP_TO', 'ANTIGUEDAD','OLA'];
 
 		const uniqueOrdersMap = json.reduce(
 			(acc, row) => {
 				const orderId = row['ID DEL PEDIDO'];
-				const firstPart = orderId?.trim()?.split('-', 1)?.[0];
+				const firstPart = orderId?.trim()?.split('-')?.[0];
+				const pedidoNumber = orderId?.trim()?.split('-')?.[3];
 
 				// Si el ID ya ha sido procesado o la primera parte es ignorada, salta
 				if (acc.seenIds.has(orderId) || ignoredShipments.includes(firstPart)) {
 					return acc;
 				}
 
+				// --- MODIFICACIÓN CLAVE AQUÍ ---
+				// Crea un nuevo objeto de fila que solo contendrá las columnas filtradas
+				const filteredRow = {};
+				columnsFilters.forEach((column) => {
+					// Asigna el valor de la columna de 'row' a 'filteredRow'
+					// Asegúrate de manejar casos donde la columna no exista en 'row'
+					if (row.hasOwnProperty(column)) {
+						filteredRow[column] = row[column];
+					}
+
+					if (column === 'PEDIDO') {
+						// Añade la columna 'PEDIDO'
+						filteredRow['PEDIDO'] = pedidoNumber;
+					}
+				});
+
+				
 				// Añade el ID a los IDs vistos
 				acc.seenIds.add(orderId);
-				// Añade la fila a la lista de órdenes únicas
-				acc.orders.push(row);
+				// Añade la fila filtrada a la lista de órdenes únicas
+				acc.orders.push(filteredRow); // ¡Ahora usamos filteredRow!
 
 				return acc;
 			},
@@ -100,10 +132,21 @@ class ProcessingTable {
 
 		const uniqueOrders = uniqueOrdersMap.orders;
 
-		// this.parseJson(json);
+		console.log('Unique orders with filtered columns:', uniqueOrders);
+
+		this.parseJson(uniqueOrders);
 	}
 
-	parseJson(json) {
+	parseJson(jsonData) {
+		if (!jsonData || !Array.isArray(jsonData)) {
+			console.error('Invalid JSON data for parsing');
+			return;
+		}
+
+		if (this.tableBody) {
+			this.tableBody.innerHTML = ''; // Clear existing table body
+		}
+
 		/* populate table */
 		jsonData.forEach((row, index) => {
 			const tr = document.createElement('tr');
@@ -124,7 +167,8 @@ class ProcessingTable {
 			link.textContent = 'Ver Detalles';
 			tdLink.appendChild(link);
 			tr.appendChild(tdLink);
-			tableBody.appendChild(tr);
+
+			this.tableBody.appendChild(tr);
 		});
 	}
 }
@@ -137,4 +181,4 @@ document.addEventListener('DOMContentLoaded', () => {
 		console.error('Error during DOMContentLoaded processing:', error);
 		alert('An error occurred while initializing the application. Please check the console for details.');
 	}
-})
+});
