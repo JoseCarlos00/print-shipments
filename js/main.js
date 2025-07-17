@@ -7,7 +7,10 @@ class ProcessingTable {
 		this.inputFile = document.getElementById('input_file_excel');
 		this.tableBody = document.getElementById('excelTableBody');
 
-		if (!this.inputFile || !this.tableBody) {
+		this.checkAll = document.getElementById('checkAll');
+		this.processSelectedButton = document.getElementById('processSelectedButton');
+
+		if (!this.inputFile || !this.tableBody || !this.checkAll || !this.processSelectedButton) {
 			throw new Error('Required elements not found in the DOM');
 		}
 
@@ -18,7 +21,7 @@ class ProcessingTable {
 	init() {
 		try {
 			this.setupEventListeners();
-			this.processingJson(this.jsonData);
+			// this.processingJson(this.jsonData);
 
 			console.log('ProcessingTable initialized successfully');
 		} catch (error) {
@@ -28,6 +31,40 @@ class ProcessingTable {
 
 	setupEventListeners() {
 		this.inputFile.addEventListener('change', (e) => this.handleFileAsync(e));
+
+		this.checkAll.addEventListener('click', (e) => {
+			this.toggleAllCheckboxes(e);
+		});
+
+		this.processSelectedButton.addEventListener('click', (e) => this.processSelected(e));
+
+		this.tableBody.addEventListener('click', (e) => {
+			// 1. Encontrar la fila (<tr>) más cercana al elemento del click
+			const clickedRow = e.target.closest('tr');
+
+			// Verificar si se hizo clic dentro de una fila y si esa fila existe
+			if (clickedRow) {
+				// 2. Encontrar el checkbox dentro de esa fila
+				const checkbox = clickedRow.querySelector('input[type="checkbox"]');
+
+				// Si encontramos un checkbox en la fila, lo manipulamos
+				if (checkbox) {
+					// Si el clic no fue directamente en el checkbox, alternamos su estado
+					// Esto evita que se invierta dos veces si el usuario hace clic directamente en el checkbox
+					if (e.target !== checkbox) {
+						checkbox.checked = !checkbox.checked;
+					}
+
+					// 3. Actualizar el estado del botón de procesamiento
+					// Habilitar/deshabilitar el botón de procesamiento según si hay algún checkbox marcado
+					this.processSelectedButton.disabled = !this.tableBody.querySelector('input[type="checkbox"]:checked');
+
+					// 4. Llamar a la función para deshabilitar el ancla individual
+					// Pasa el checkbox para que tu función pueda actuar sobre él
+					this.disabledIndividualAnchor(checkbox);
+				}
+			}
+		});
 	}
 
 	// XLSX is a global from the standalone script
@@ -77,7 +114,6 @@ class ProcessingTable {
 		}
 
 		// console.log('Processing JSON data:', json);
-	
 
 		const uniqueOrdersMap = json.reduce(
 			(acc, row) => {
@@ -112,7 +148,6 @@ class ProcessingTable {
 					const tienda = tiendasCodeId[customerCode];
 
 					if (column == 'TIENDA') {
-						
 						if (tienda) {
 							filteredRow['TIENDA'] = tienda.Customer;
 						} else {
@@ -123,10 +158,12 @@ class ProcessingTable {
 					if (tienda) {
 						filteredRow['CODE'] = tienda.Code;
 						filteredRow['ID'] = tienda.Id;
+						filteredRow[
+							'Enlace'
+						] = `http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?PedidoNum=${pedidoNumber}&TiendaId=${tienda.Id}`;
 					}
 				});
 
-				
 				// Añade el ID a los IDs vistos
 				acc.seenIds.add(orderId);
 				// Añade la fila filtrada a la lista de órdenes únicas
@@ -139,7 +176,7 @@ class ProcessingTable {
 
 		const uniqueOrders = uniqueOrdersMap.orders;
 
-		console.log('Unique orders with filtered columns:', uniqueOrders);
+		// console.log('Unique orders with filtered columns:', uniqueOrders);
 
 		this.parseJson(uniqueOrders);
 	}
@@ -154,24 +191,16 @@ class ProcessingTable {
 			this.tableBody.innerHTML = ''; // Clear existing table body
 		}
 
-		// Filtered columns in not includes 'ID' and 'CODE'
-		const filteredColumns = jsonData.map((row) => {
-			return Object.fromEntries(
-				Object.entries(row).filter(([key]) => !['ID', 'CODE'].includes(key))
-			);
-		}).filter(row => Object.keys(row).length > 0); // Filter out empty rows		
-
-		console.log('Filtered columns:', filteredColumns);
-		
-		
-
 		/* populate table */
-		filteredColumns.forEach((row, index) => {
+		jsonData.forEach((row, index) => {
 			const tr = document.createElement('tr');
 
 			const tdCheckbox = document.createElement('td');
 			const checkbox = document.createElement('input');
 			checkbox.type = 'checkbox';
+			checkbox.dataset.tiendaId = row['ID'] || '';
+			checkbox.dataset.tiendaCode = row['CODE'] || '';
+			checkbox.dataset.pedido = row['PEDIDO'] || '';
 			checkbox.className = 'form-check-input';
 			checkbox.id = `checkbox-${index}`;
 			tdCheckbox.appendChild(checkbox);
@@ -181,9 +210,15 @@ class ProcessingTable {
 			thIndex.scope = 'row';
 			thIndex.textContent = index + 1;
 			tr.appendChild(thIndex);
-			
 
-			Object.values(row).forEach((value) => {
+			Object.entries(row).forEach(([key, value]) => {
+				// console.log(`Processing key: ${key}, value: ${value}`);
+
+				if (key === 'ID' || key === 'CODE' || key === 'Enlace') {
+					// Skip 'ID' and 'CODE' columns
+					return;
+				}
+
 				const td = document.createElement('td');
 				td.textContent = value;
 				tr.appendChild(td);
@@ -203,6 +238,67 @@ class ProcessingTable {
 			this.tableBody.appendChild(tr);
 		});
 	}
+
+	toggleAllCheckboxes(e) {
+		const checkboxes = this.tableBody.querySelectorAll('input[type="checkbox"]');
+		checkboxes.forEach((checkbox) => {
+			checkbox.checked = this.checkAll.checked;
+			this.disabledIndividualAnchor(checkbox);
+		});
+
+		this.processSelectedButton.disabled = !this.checkAll.checked;
+	}
+
+	disabledIndividualAnchor(checkbox) {
+		const row = checkbox.closest('tr');
+		if (checkbox.checked) {
+			row.classList.add('disabled');
+		} else {
+			row.classList.remove('disabled');
+		}
+	}
+
+	processSelected() {
+		const selectedCheckboxes = this.tableBody.querySelectorAll('input[type="checkbox"]:checked');
+		if (selectedCheckboxes.length === 0) {
+			alert('No hay pedidos seleccionados para procesar.');
+			return;
+		}
+
+		const selectedData = Array.from(selectedCheckboxes).map((checkbox) => ({
+			tiendaId: checkbox.dataset.tiendaId,
+			tiendaCode: checkbox.dataset.tiendaCode,
+			pedido: checkbox.dataset.pedido,
+		}));
+
+		console.log('Selected data:', selectedData);
+		this.sendExternalPrintShipments(selectedData);
+
+
+		// Aquí puedes agregar la lógica para procesar los datos seleccionados
+		// alert(`Procesando ${selectedData.length} pedidos seleccionados.`);
+		this.processSelectedButton.disabled = true; // Deshabilitar el botón después de procesar
+	}
+
+	// http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?PedidoNum=78785,51420,62401&TiendaId=7,19,9
+	sendExternalPrintShipments(selectedData) {
+		const baseURL = 'http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?';
+
+		// PedidoNum=78785,51420,62401
+		const PedidoNum = []
+		// &TiendaId=7,19,9
+		const TiendaId = []
+
+
+		selectedData.forEach(({ tiendaId, pedido }) => {
+			PedidoNum.push(pedido)
+			TiendaId.push(tiendaId)
+		})
+
+		const newURL = `${baseURL}PedidoNum=${PedidoNum.join(',')}&TiendaId=${TiendaId.join(',')}`;
+		window.open(newURL, '_blank');
+
+	}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -214,4 +310,3 @@ document.addEventListener('DOMContentLoaded', () => {
 		alert('An error occurred while initializing the application. Please check the console for details.');
 	}
 });
-
