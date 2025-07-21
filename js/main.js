@@ -208,7 +208,7 @@ class ProcessingTable {
 			checkbox.className = 'form-check-input';
 			checkbox.id = `checkbox-${index}`;
 			checkbox.checked = true;
-			tdCheckbox.appendChild(checkbox);
+			// tdCheckbox.appendChild(checkbox);
 			tr.appendChild(tdCheckbox);
 
 			const thIndex = document.createElement('th');
