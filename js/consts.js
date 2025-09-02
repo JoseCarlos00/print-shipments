@@ -50,4 +50,5 @@ export const tiendasCodeId = {
 	4799: { Code: '4799', Customer: 'Coa-Saltillo', Id: 52 },
 	9953: { Code: '9953', Customer: 'Pue-Angelopolis', Id: 53 },
 	9954: { Code: '9954', Customer: 'Chi-Chihuahua', Id: 54 },
+	9955: { Code: '9955', Customer: 'Tab-Villahermosa', Id: 55 },
 };
