@@ -253,6 +253,7 @@ class ProcessingTable {
 			checkbox.dataset.pedido = row['PEDIDO'] || '';
 			checkbox.className = 'form-check-input';
 			checkbox.id = `checkbox-${index}`;
+			// checkbox.checked = true;
 			tdCheckbox.appendChild(checkbox);
 			tr.appendChild(tdCheckbox);
 
