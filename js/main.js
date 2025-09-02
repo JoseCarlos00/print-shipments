@@ -24,7 +24,6 @@ class ProcessingTable {
 	init() {
 		try {
 			this.setupEventListeners();
-			this.checkAll.click(true);
 
 			console.log('ProcessingTable initialized successfully');
 		} catch (error) {
@@ -154,13 +153,15 @@ class ProcessingTable {
 		this.tableBody.innerHTML = '';
 
 		/* process JSON data */
-		this.processingJson(jsonData);
+		const uniqueOrders = this.processingJson(jsonData);
+		this.renderTable(uniqueOrders);
+		this.selectAllOnInit();
 	}
 
 	processingJson(json) {
 		if (!json || !Array.isArray(json)) {
-			console.error('Invalid JSON data');
-			return;
+			console.error('Invalid JSON data for processing');
+			return [];
 		}
 
 		// console.log('Processing JSON data:', json);
@@ -228,12 +229,12 @@ class ProcessingTable {
 
 		// console.log('Unique orders with filtered columns:', uniqueOrders);
 
-		this.parseJson(uniqueOrders);
+		return uniqueOrders;
 	}
 
-	parseJson(jsonData) {
+	renderTable(jsonData) {
 		if (!jsonData || !Array.isArray(jsonData)) {
-			console.error('Invalid JSON data for parsing');
+			console.error('Invalid JSON data for rendering');
 			return;
 		}
 
@@ -287,9 +288,12 @@ class ProcessingTable {
 			tr.appendChild(tdLink);
 
 			this.tableBody.appendChild(tr);
-
-			this.checkAll.click(true);
 		});
+	}
+
+	selectAllOnInit() {
+		this.checkAll.checked = true;
+		this.toggleAllCheckboxes();
 	}
 
 	updateSelectedCounter() {
@@ -302,19 +306,17 @@ class ProcessingTable {
 		}
 	}
 
-	toggleAllCheckboxes(isCheck) {
+	toggleAllCheckboxes() {
 		const checkboxes = this.tableBody.querySelectorAll('input[type="checkbox"]');
 
-		if (isCheck) this.checkAll.checked = true;
-
 		checkboxes.forEach((checkbox) => {
-			checkbox.checked = isCheck || this.checkAll.checked;
+			checkbox.checked = this.checkAll.checked;
 			this.disabledIndividualAnchor(checkbox);
 		});
 
 		this.updateSelectedCounter();
 
-		this.processSelectedButton.disabled = isCheck !== undefined ? false : !this.checkAll.checked;
+		this.processSelectedButton.disabled = !this.checkAll.checked;
 	}
 
 	disabledIndividualAnchor(checkbox) {
@@ -342,7 +344,8 @@ class ProcessingTable {
 		console.log('Selected data: [', selectedData.length, ']', selectedData);
 		this.sendExternalPrintShipments(selectedData);
 
-		this.checkAll.click();
+		this.checkAll.checked = false;
+		this.toggleAllCheckboxes();
 	}
 
 	// http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?PedidoNum=78785,51420,62401&TiendaId=7,19,9
