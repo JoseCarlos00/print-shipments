@@ -24,10 +24,12 @@
 
     <div class="row">
       <div class="col-md-6">
-        <h3 class="text-center my-4">Cargar Archivo Excel</h1>
-        <input type="file" id="input_file_excel" class="form-control mb-3" accept=".xlsx, .xls, .csv">
-        
-        <button hidden id="loadButton" class="btn btn-primary">Cargar y Filtrar</button> 
+        <h3 class="text-center my-4">Cargar Archivo Excel</h3>
+        <div id="file-drop-area" class="file-drop-area p-4 mb-3 text-center">
+          <p class="text-muted">Arrastra y suelta un archivo aquí, o haz clic abajo para seleccionar.</p>
+          <input type="file" id="input_file_excel" class="form-control" accept=".xlsx, .xls, .csv">
+        </div>
+        <button hidden id="loadButton" class="btn btn-primary">Cargar y Filtrar</button>
         
         <div class="text-center">
           <button id="processSelectedButton" class="btn btn-success" disabled style="height: 62px; min-width: 114px;">
@@ -79,6 +81,17 @@
 
         input[type=checkbox] {
           cursor: pointer;
+        }
+
+        .file-drop-area {
+          border: 2px dashed #ccc;
+          border-radius: 8px;
+          transition: border-color 0.3s, background-color 0.3s;
+        }
+
+        .file-drop-area.drag-over {
+          border-color: #0d6efd; /* Bootstrap primary blue */
+          background-color: #e9ecef;
         }
       </style>
 
