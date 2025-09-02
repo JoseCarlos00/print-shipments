@@ -24,7 +24,7 @@ class ProcessingTable {
 	init() {
 		try {
 			this.setupEventListeners();
-			this.checkAll.click()
+			this.checkAll.click(true);
 
 			console.log('ProcessingTable initialized successfully');
 		} catch (error) {
@@ -55,8 +55,8 @@ class ProcessingTable {
 			dropArea.addEventListener('drop', (e) => this.handleDrop(e), false);
 		}
 
-		this.checkAll.addEventListener('click', (e) => {
-			this.toggleAllCheckboxes(e);
+		this.checkAll.addEventListener('click', () => {
+			this.toggleAllCheckboxes();
 		});
 
 		this.processSelectedButton.addEventListener('click', (e) => this.processSelected(e));
@@ -287,6 +287,8 @@ class ProcessingTable {
 			tr.appendChild(tdLink);
 
 			this.tableBody.appendChild(tr);
+
+			this.checkAll.click(true);
 		});
 	}
 
@@ -294,25 +296,25 @@ class ProcessingTable {
 		// Cuenta cuántos checkboxes están actualmente marcados dentro de tableBody
 		const selectedCount = this.tableBody.querySelectorAll('input[type="checkbox"]:checked').length;
 
-
 		// Asigna el número al contenido de tu elemento contador
 		if (this.counterSelected) {
 			this.counterSelected.textContent = selectedCount === 0 ? '' : selectedCount;
 		}
 	}
 
-	toggleAllCheckboxes(e) {
+	toggleAllCheckboxes(isCheck) {
 		const checkboxes = this.tableBody.querySelectorAll('input[type="checkbox"]');
 
-		checkboxes.forEach((checkbox) => {
-			checkbox.checked = this.checkAll.checked;
-			this.disabledIndividualAnchor(checkbox);
+		if (isCheck) this.checkAll.checked = true;
 
+		checkboxes.forEach((checkbox) => {
+			checkbox.checked = isCheck || this.checkAll.checked;
+			this.disabledIndividualAnchor(checkbox);
 		});
 
 		this.updateSelectedCounter();
 
-		this.processSelectedButton.disabled = !this.checkAll.checked;
+		this.processSelectedButton.disabled = isCheck !== undefined ? false : !this.checkAll.checked;
 	}
 
 	disabledIndividualAnchor(checkbox) {
@@ -331,19 +333,16 @@ class ProcessingTable {
 			return;
 		}
 
-
 		const selectedData = Array.from(selectedCheckboxes).map((checkbox) => ({
 			tiendaId: checkbox.dataset.tiendaId,
 			tiendaCode: checkbox.dataset.tiendaCode,
 			pedido: checkbox.dataset.pedido,
 		}));
 
-		console.log('Selected data:', selectedData);
+		console.log('Selected data: [', selectedData.length, ']', selectedData);
 		this.sendExternalPrintShipments(selectedData);
 
-		// Aquí puedes agregar la lógica para procesar los datos seleccionados
-		// alert(`Procesando ${selectedData.length} pedidos seleccionados.`);
-		this.processSelectedButton.disabled = true; // Deshabilitar el botón después de procesar
+		this.checkAll.click();
 	}
 
 	// http://fmorion.dnsalias.com/orion/paginas/Bodega/ListaBodegaPedidosTienda.aspx?PedidoNum=78785,51420,62401&TiendaId=7,19,9
