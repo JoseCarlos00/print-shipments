@@ -5,6 +5,7 @@ import { excelSerialDateToJSDate, formatDateTime } from './utils.js'; // Import 
 class ProcessingTable {
 	constructor() {
 		this.inputFile = document.getElementById('input_file_excel');
+		this.fileDropArea = document.getElementById('file-drop-area');
 		this.tableBody = document.getElementById('excelTableBody');
 
 		this.checkAll = document.getElementById('checkAll');
@@ -12,7 +13,7 @@ class ProcessingTable {
 
 		this.counterSelected = document.getElementById('counterSelected');
 
-		if (!this.inputFile || !this.tableBody || !this.checkAll || !this.processSelectedButton) {
+		if (!this.inputFile || !this.fileDropArea || !this.tableBody || !this.checkAll || !this.processSelectedButton) {
 			throw new Error('Required elements not found in the DOM');
 		}
 
@@ -23,7 +24,7 @@ class ProcessingTable {
 	init() {
 		try {
 			this.setupEventListeners();
-			// this.processingJson(this.jsonData);
+			this.checkAll.click()
 
 			console.log('ProcessingTable initialized successfully');
 		} catch (error) {
@@ -33,6 +34,26 @@ class ProcessingTable {
 
 	setupEventListeners() {
 		this.inputFile.addEventListener('change', (e) => this.handleFileAsync(e));
+
+		// Drag and drop listeners for the file drop area
+		const dropArea = this.fileDropArea;
+		if (dropArea) {
+			// Prevent default drag behaviors
+			['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
+				dropArea.addEventListener(eventName, this.preventDefaults, false);
+			});
+
+			// Highlight drop area when item is dragged over it
+			['dragenter', 'dragover'].forEach((eventName) => {
+				dropArea.addEventListener(eventName, () => this.highlight(dropArea), false);
+			});
+
+			['dragleave', 'drop'].forEach((eventName) => {
+				dropArea.addEventListener(eventName, () => this.unhighlight(dropArea), false);
+			});
+
+			dropArea.addEventListener('drop', (e) => this.handleDrop(e), false);
+		}
 
 		this.checkAll.addEventListener('click', (e) => {
 			this.toggleAllCheckboxes(e);
@@ -64,7 +85,6 @@ class ProcessingTable {
 					// 4. Llamar a la función para deshabilitar el ancla individual
 					// Pasa el checkbox para que tu función pueda actuar sobre él
 					this.disabledIndividualAnchor(checkbox);
-
 					this.updateSelectedCounter();
 				}
 			}
@@ -72,6 +92,32 @@ class ProcessingTable {
 	}
 
 	// XLSX is a global from the standalone script
+
+	preventDefaults(e) {
+		e.preventDefault();
+		e.stopPropagation();
+	}
+
+	highlight(element) {
+		element.classList.add('drag-over');
+	}
+
+	unhighlight(element) {
+		element.classList.remove('drag-over');
+	}
+
+	handleDrop(e) {
+		const dt = e.dataTransfer;
+		const files = dt.files;
+
+		if (files.length) {
+			this.inputFile.files = files;
+			// Manually trigger the 'change' event on the file input,
+			// which is already listened to by handleFileAsync
+			const event = new Event('change', { bubbles: true });
+			this.inputFile.dispatchEvent(event);
+		}
+	}
 
 	async handleFileAsync(e) {
 		const file = e.target.files[0];
